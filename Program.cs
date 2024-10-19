@@ -32,8 +32,12 @@ builder.Services.AddAuthorization();
 builder.Services.AddDbContext<AppDbContext>(opts =>
     opts.UseSqlite("Data Source=app.db"));
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>();
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(opts =>
+{
+    opts.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultProvider;
+})
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
