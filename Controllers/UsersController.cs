@@ -48,15 +48,42 @@ public class UsersController : ApiController
         return Created("/api/users/identity/login", new AuthResponseDto { Token = token });
     }
 
+    [AllowAnonymous]
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Login(
+        [FromBody] RegisterRequestDto request,
+        [FromServices] UserManager<IdentityUser> userManager,
+        [FromServices] SignInManager<IdentityUser> signInManager,
+        [FromServices] IJwtService jwtService)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user is null)
+        {
+            return Unauthorized("Credenciais inválidas");
+        }
+        var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, false);
+        if (!result.Succeeded)
+        {
+            return Unauthorized("Credenciais inválidas");
+        }
+        var token = jwtService.CreateAuthToken(user);
+        var response = new AuthResponseDto
+        {
+            Token = token
+        };
+        return Ok(response);
+    }
+
     [HttpGet("me")]
-    public async Task<IActionResult> Me([FromServices] AppDbContext context)
+    public async Task<IActionResult> Me([FromServices] UserManager<IdentityUser> userManager)
     {
         var email = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (email is null)
         {
             return Unauthorized();
         }
-        var user = await context.Users.FirstOrDefaultAsync(user => user.Email == email);
+        var user = await userManager.FindByEmailAsync(email);
         return Ok(user);
     }
 }
